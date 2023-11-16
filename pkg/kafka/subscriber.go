@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 
@@ -518,6 +518,10 @@ func (h consumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, cla
 		case <-h.ctx.Done():
 			h.logger.Debug("Ctx was cancelled, stopping consumerGroupHandler", logFields)
 			return nil
+
+		case <-sess.Context().Done():
+			h.logger.Debug("Session ctx was cancelled, stopping consumerGroupHandler", logFields)
+			return nil
 		default:
 			continue
 		}
@@ -579,6 +583,9 @@ ResendLoop:
 		case <-ctx.Done():
 			h.logger.Trace("Closing, ctx cancelled before sent to consumer", receivedMsgLogFields)
 			return nil
+		case <-sess.Context().Done():
+			h.logger.Trace("Closing, session ctx cancelled before sent to consumer", receivedMsgLogFields)
+			return nil
 		}
 
 		select {
@@ -603,6 +610,9 @@ ResendLoop:
 			return nil
 		case <-ctx.Done():
 			h.logger.Trace("Closing, ctx cancelled before ack", receivedMsgLogFields)
+			return nil
+		case <-sess.Context().Done():
+			h.logger.Trace("Closing, session ctx cancelled before ack", receivedMsgLogFields)
 			return nil
 		}
 	}
